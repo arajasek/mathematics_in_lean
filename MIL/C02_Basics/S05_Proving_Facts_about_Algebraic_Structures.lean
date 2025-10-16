@@ -36,22 +36,76 @@ variable (x y z : α)
 #check (sup_le : x ≤ z → y ≤ z → x ⊔ y ≤ z)
 
 example : x ⊓ y = y ⊓ x := by
-  sorry
+  apply le_antisymm
+  apply le_inf
+  apply inf_le_right
+  apply inf_le_left
+  apply le_inf
+  apply inf_le_right
+  apply inf_le_left
+
 
 example : x ⊓ y ⊓ z = x ⊓ (y ⊓ z) := by
-  sorry
+  have h1: x ⊓ y ⊓ z ≤ x ⊓ y := inf_le_left
+  have h2: x ⊓ y ⊓ z ≤ z := inf_le_right
+  have h3: x ⊓ y ≤ y := inf_le_right
+  apply le_antisymm
+  apply le_inf
+  apply le_trans inf_le_left
+  apply inf_le_left
+  have h4: x ⊓ y ⊓ z ≤ y := le_trans h1 h3
+  apply le_inf h4 h2
+  apply le_inf
+  apply le_inf
+  apply inf_le_left
+  trans (y ⊓ z)
+  apply inf_le_right
+  apply inf_le_left
+  trans (y ⊓ z)
+  apply inf_le_right
+  apply inf_le_right
 
 example : x ⊔ y = y ⊔ x := by
-  sorry
+  apply le_antisymm
+  repeat
+  apply sup_le
+  apply le_sup_right
+  apply le_sup_left
 
 example : x ⊔ y ⊔ z = x ⊔ (y ⊔ z) := by
-  sorry
+  apply le_antisymm
+  apply sup_le
+  apply sup_le
+  apply le_sup_left
+  trans (y ⊔ z)
+  apply le_sup_left
+  apply le_sup_right
+  trans (y ⊔ z)
+  apply le_sup_right
+  apply le_sup_right
+  apply sup_le
+  trans (x ⊔ y)
+  apply le_sup_left
+  apply le_sup_left
+  apply sup_le
+  trans (x ⊔ y)
+  apply le_sup_right
+  apply le_sup_left
+  apply le_sup_right
 
 theorem absorb1 : x ⊓ (x ⊔ y) = x := by
-  sorry
+  apply le_antisymm
+  apply inf_le_left
+  apply le_inf
+  apply le_refl
+  apply le_sup_left
 
 theorem absorb2 : x ⊔ x ⊓ y = x := by
-  sorry
+  apply le_antisymm
+  · apply sup_le
+    · apply le_refl
+    apply inf_le_left
+  apply le_sup_left
 
 end
 
@@ -70,10 +124,39 @@ variable {α : Type*} [Lattice α]
 variable (a b c : α)
 
 example (h : ∀ x y z : α, x ⊓ (y ⊔ z) = x ⊓ y ⊔ x ⊓ z) : a ⊔ b ⊓ c = (a ⊔ b) ⊓ (a ⊔ c) := by
-  sorry
+  rw [h]
+  rw [inf_comm _ a]
+  rw [absorb1]
+  rw [inf_comm (a⊔ b)]
+  rw [h]
+  rw [← sup_assoc]
+  rw [inf_comm c]
+  rw [absorb2]
+  rw [inf_comm c b]
+
+
+
+  -- apply le_antisymm
+  -- apply le_inf
+  -- apply sup_le
+  -- apply le_sup_left
+  -- trans b
+  -- apply inf_le_left
+  -- apply le_sup_right
+  -- apply sup_le
+  -- apply le_sup_left
+  -- trans c
+  -- apply inf_le_right
+  -- apply le_sup_right
+
+
+
+
+
 
 example (h : ∀ x y z : α, x ⊔ y ⊓ z = (x ⊔ y) ⊓ (x ⊔ z)) : a ⊓ (b ⊔ c) = a ⊓ b ⊔ a ⊓ c := by
-  sorry
+    rw [h, @sup_comm _ _ (a ⊓ b), absorb2, @sup_comm _ _ (a ⊓ b), h, ← inf_assoc, @sup_comm _ _ c a,
+    absorb1, sup_comm]
 
 end
 
@@ -109,4 +192,3 @@ example (x y : X) : 0 ≤ dist x y := by
   sorry
 
 end
-
