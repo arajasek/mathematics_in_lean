@@ -169,14 +169,30 @@ variable (a b c : R)
 
 #check (mul_nonneg : 0 ≤ a → 0 ≤ b → 0 ≤ a * b)
 
-example (h : a ≤ b) : 0 ≤ b - a := by
-  sorry
+theorem aux1 (h : a ≤ b) : 0 ≤ b - a := by
+  have h1: -a + a ≤ -a + b := by
+    apply add_le_add_left
+    exact h
+  rw [neg_add_cancel] at h1
+  rw [add_comm] at h1
+  rw [sub_eq_add_neg]
+  exact h1
+
 
 example (h: 0 ≤ b - a) : a ≤ b := by
-  sorry
+  rw [← add_zero a, ← sub_add_cancel b a, add_comm (b-a)]
+  apply add_le_add_left h
+
 
 example (h : a ≤ b) (h' : 0 ≤ c) : a * c ≤ b * c := by
-  sorry
+  rw [← add_zero (a * c), ← sub_add_cancel (b*c) (a*c), add_comm (b*c - a*c), ← sub_mul]
+  apply add_le_add_left
+  apply mul_nonneg
+  apply aux1
+  exact h
+  exact h'
+
+
 
 end
 
@@ -189,6 +205,9 @@ variable (x y z : X)
 #check (dist_triangle x y z : dist x z ≤ dist x y + dist y z)
 
 example (x y : X) : 0 ≤ dist x y := by
-  sorry
+  have h1: dist x x ≤ dist x y + dist y x := by
+    apply dist_triangle
+  rw [dist_self, dist_comm y x, ← two_mul] at h1
+  linarith
 
 end
