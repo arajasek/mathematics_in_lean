@@ -21,6 +21,9 @@ example (h : s ⊆ t) : s ∩ u ⊆ t ∩ u := by
 
 example (h : s ⊆ t) : s ∩ u ⊆ t ∩ u := by
   intro x xsu
+  -- rw [subset_def] at h
+  -- rw [inter_def, mem_setOf] at xsu
+  -- rw [inter_def, mem_setOf]
   exact ⟨h xsu.1, xsu.2⟩
 
 example (h : s ⊆ t) : s ∩ u ⊆ t ∩ u :=
@@ -44,7 +47,10 @@ example : s ∩ (t ∪ u) ⊆ s ∩ t ∪ s ∩ u := by
   · right; exact ⟨xs, xu⟩
 
 example : s ∩ t ∪ s ∩ u ⊆ s ∩ (t ∪ u) := by
-  sorry
+  rintro x (⟨xs, xt⟩ | ⟨xs, xu⟩)
+  use xs; left; use xt
+  use xs; right; use xu
+
 example : (s \ t) \ u ⊆ s \ (t ∪ u) := by
   intro x xstu
   have xs : x ∈ s := xstu.1.1
@@ -64,7 +70,16 @@ example : (s \ t) \ u ⊆ s \ (t ∪ u) := by
   rintro (xt | xu) <;> contradiction
 
 example : s \ (t ∪ u) ⊆ (s \ t) \ u := by
-  sorry
+  rintro x ⟨xs, xntu⟩
+  constructor
+  use xs
+  intro xt
+  apply xntu (Or.inl xt)
+  intro xu
+  exact xntu (Or.inr xu)
+
+
+
 example : s ∩ t = t ∩ s := by
   ext x
   simp only [mem_inter_iff]
@@ -83,18 +98,60 @@ example : s ∩ t = t ∩ s := by
   · rintro x ⟨xt, xs⟩; exact ⟨xs, xt⟩
 
 example : s ∩ t = t ∩ s :=
-    Subset.antisymm sorry sorry
+    Subset.antisymm (fun x ⟨xs, xt⟩ ↦ ⟨xt, xs⟩) fun x ⟨xt, xs⟩ ↦ ⟨xs, xt⟩
+
 example : s ∩ (s ∪ t) = s := by
-  sorry
+  apply Subset.antisymm
+  rintro x ⟨xs, _⟩
+  exact xs
+  rintro x xs
+  use xs; left; use xs
+
+
 
 example : s ∪ s ∩ t = s := by
-  sorry
+  ext x; constructor
+  rintro (xs | xst)
+  exact xs
+  exact xst.1
+  rintro xs
+  left; exact xs
+
 
 example : s \ t ∪ t = s ∪ t := by
-  sorry
+  ext x; constructor
+  rintro (⟨xs, xnt⟩ | xt)
+  left; exact xs
+  right; exact xt
+  rintro (xs | xt)
+  by_cases h: x ∈ t
+  right; exact h
+  left; constructor; exact xs; exact h
+  right; exact xt
 
 example : s \ t ∪ t \ s = (s ∪ t) \ (s ∩ t) := by
-  sorry
+  ext x; constructor
+
+  rintro (⟨xs, xnt⟩ | ⟨xt, xns⟩)
+  constructor
+  left; exact xs
+  rintro ⟨h1, h2⟩; contradiction
+  constructor
+  right; exact xt
+  rintro ⟨h1, h2⟩; contradiction
+
+  rintro ⟨(xs | xt), h⟩
+  left
+  constructor
+  exact xs
+  intro xt;  apply h;  exact ⟨xs, xt⟩
+  right
+  constructor
+  exact xt
+  intro xs; apply h; exact ⟨xs, xt⟩
+
+
+
 
 def evens : Set ℕ :=
   { n | Even n }
@@ -115,7 +172,17 @@ example (x : ℕ) : x ∈ (univ : Set ℕ) :=
   trivial
 
 example : { n | Nat.Prime n } ∩ { n | n > 2 } ⊆ { n | ¬Even n } := by
-  sorry
+  intro n
+  simp
+  intro np ng2
+  apply Nat.Prime.eq_two_or_odd at np
+  apply Nat.odd_iff.mpr
+  rcases np with ⟨h, rfl⟩ | h
+  contradiction
+  assumption
+
+
+
 
 #print Prime
 
@@ -151,10 +218,16 @@ section
 variable (ssubt : s ⊆ t)
 
 example (h₀ : ∀ x ∈ t, ¬Even x) (h₁ : ∀ x ∈ t, Prime x) : ∀ x ∈ s, ¬Even x ∧ Prime x := by
-  sorry
+  intro x xs
+  apply ssubt at xs
+  constructor
+  exact h₀ x xs
+  exact h₁ x xs
 
 example (h : ∃ x ∈ s, ¬Even x ∧ Prime x) : ∃ x ∈ t, Prime x := by
-  sorry
+  rcases h with ⟨x, xs, _, xp⟩
+  use x
+  exact ⟨ssubt xs, xp⟩
 
 end
 
@@ -193,7 +266,34 @@ example : (⋂ i, A i ∩ B i) = (⋂ i, A i) ∩ ⋂ i, B i := by
 
 
 example : (s ∪ ⋂ i, A i) = ⋂ i, A i ∪ s := by
-  sorry
+  ext x
+  simp
+  constructor
+
+  rintro (h | h)
+  intro i
+  right
+  exact h
+  intro i
+  left
+  apply h
+
+  intro h
+  by_cases xs: x ∈ s
+  left
+  exact xs
+  right
+  intro i
+  cases h i
+  assumption
+  contradiction
+
+
+
+
+
+
+
 
 def primes : Set ℕ :=
   { x | Nat.Prime x }
@@ -214,7 +314,13 @@ example : (⋂ p ∈ primes, { x | ¬p ∣ x }) ⊆ { x | x = 1 } := by
   apply Nat.exists_prime_and_dvd
 
 example : (⋃ p ∈ primes, { x | x ≤ p }) = univ := by
-  sorry
+  apply eq_univ_of_forall
+  intro x
+  simp
+  rcases Nat.exists_infinite_primes x with ⟨p, hp⟩
+  use p
+  exact⟨hp.2, hp.1⟩
+
 
 end
 
@@ -235,4 +341,3 @@ example : ⋂₀ s = ⋂ t ∈ s, t := by
   rfl
 
 end
-
