@@ -69,16 +69,32 @@ example (h : s ⊆ t) : f '' s ⊆ f '' t := by
 
 
 example (h : u ⊆ v) : f ⁻¹' u ⊆ f ⁻¹' v := by
-  sorry
+  intro y
+  apply h
 
 example : f ⁻¹' (u ∪ v) = f ⁻¹' u ∪ f ⁻¹' v := by
-  sorry
+  ext y; constructor; intro hy
+  simp at hy
+  apply hy
+  intro hy
+  simp at hy
+  apply hy
 
 example : f '' (s ∩ t) ⊆ f '' s ∩ f '' t := by
-  sorry
+  rintro y ⟨x, ⟨xs, xt⟩, rfl⟩
+  constructor
+  use x, xs
+  use x, xt
+
 
 example (h : Injective f) : f '' s ∩ f '' t ⊆ f '' (s ∩ t) := by
-  sorry
+  rintro y ⟨⟨x1, x1s, fx1⟩ , ⟨x2, x2t, fx2⟩⟩
+  have: f x1 = f x2 := by
+    rw [fx1, fx2]
+  apply h at this
+  use x1
+  constructor; constructor; exact x1s; rw [this]; exact x2t
+  assumption
 
 example : f '' s \ f '' t ⊆ f '' (s \ t) := by
   sorry
