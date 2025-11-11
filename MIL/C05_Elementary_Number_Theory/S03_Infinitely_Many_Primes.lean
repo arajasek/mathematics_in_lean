@@ -45,18 +45,21 @@ theorem exists_prime_factor {n : Nat} (h : 2 ≤ n) : ∃ p : Nat, p.Prime ∧ p
 theorem primes_infinite : ∀ n, ∃ p > n, Nat.Prime p := by
   intro n
   have : 2 ≤ Nat.factorial n + 1 := by
-    sorry
+    simp
+    apply Nat.factorial_pos
   rcases exists_prime_factor this with ⟨p, pp, pdvd⟩
   refine ⟨p, ?_, pp⟩
   show p > n
   by_contra ple
   push_neg at ple
   have : p ∣ Nat.factorial n := by
-    sorry
+    apply Nat.dvd_factorial (Nat.Prime.pos pp) ple
   have : p ∣ 1 := by
-    sorry
+    rw [← Nat.add_sub_cancel_left n.factorial 1]
+    apply Nat.dvd_sub pdvd this
   show False
-  sorry
+  absurd this
+  apply pp.not_dvd_one
 open Finset
 
 section
@@ -89,9 +92,14 @@ section
 variable {α : Type*} [DecidableEq α] (r s t : Finset α)
 
 example : (r ∪ s) ∩ (r ∪ t) = r ∪ s ∩ t := by
-  sorry
+  ext x
+  simp
+  tauto
+
 example : (r \ s) \ t = r \ (s ∪ t) := by
-  sorry
+  ext s
+  simp
+  tauto
 
 end
 
@@ -101,7 +109,9 @@ example (s : Finset ℕ) (n : ℕ) (h : n ∈ s) : n ∣ ∏ i ∈ s, i :=
 theorem _root_.Nat.Prime.eq_of_dvd_of_prime {p q : ℕ}
       (prime_p : Nat.Prime p) (prime_q : Nat.Prime q) (h : p ∣ q) :
     p = q := by
-  sorry
+  rcases (Nat.Prime.eq_one_or_self_of_dvd prime_q p h) with h1 | h2
+  absurd h1; exact prime_p.ne_one
+  assumption
 
 theorem mem_of_dvd_prod_primes {s : Finset ℕ} {p : ℕ} (prime_p : p.Prime) :
     (∀ n ∈ s, Nat.Prime n) → (p ∣ ∏ n ∈ s, n) → p ∈ s := by
@@ -111,7 +121,10 @@ theorem mem_of_dvd_prod_primes {s : Finset ℕ} {p : ℕ} (prime_p : p.Prime) :
     linarith [prime_p.two_le]
   simp [Finset.prod_insert ans, prime_p.dvd_mul] at h₀ h₁
   rw [mem_insert]
-  sorry
+  rcases h₁ with h' | h'
+  left; exact Nat.Prime.eq_of_dvd_of_prime prime_p h₀.1 h'
+  right; exact ih h₀.2 h'
+
 example (s : Finset ℕ) (x : ℕ) : x ∈ s.filter Nat.Prime ↔ x ∈ s ∧ x.Prime :=
   mem_filter
 
@@ -125,15 +138,21 @@ theorem primes_infinite' : ∀ s : Finset Nat, ∃ p, Nat.Prime p ∧ p ∉ s :=
     simp [s'_def]
     apply h
   have : 2 ≤ (∏ i ∈ s', i) + 1 := by
-    sorry
+    simp
+    have : ∀ i ∈ s', 0 < i := by
+      intro i is
+      exact Nat.Prime.pos (mem_s'.mp is)
+    apply prod_pos this
   rcases exists_prime_factor this with ⟨p, pp, pdvd⟩
   have : p ∣ ∏ i ∈ s', i := by
-    sorry
+    apply dvd_prod_of_mem
+    apply mem_s'.mpr pp
   have : p ∣ 1 := by
     convert Nat.dvd_sub pdvd this
     simp
   show False
-  sorry
+  apply pp.not_dvd_one this
+
 theorem bounded_of_ex_finset (Q : ℕ → Prop) :
     (∃ s : Finset ℕ, ∀ k, Q k → k ∈ s) → ∃ n, ∀ k, Q k → k < n := by
   rintro ⟨s, hs⟩
@@ -171,7 +190,11 @@ theorem two_le_of_mod_4_eq_3 {n : ℕ} (h : n % 4 = 3) : 2 ≤ n := by
       norm_num at h
 
 theorem aux {m n : ℕ} (h₀ : m ∣ n) (h₁ : 2 ≤ m) (h₂ : m < n) : n / m ∣ n ∧ n / m < n := by
-  sorry
+  constructor
+  use m; symm
+  apply Nat.div_mul_cancel h₀
+  apply Nat.div_lt_self <;> linarith
+
 theorem exists_prime_factor_mod_4_eq_3 {n : Nat} (h : n % 4 = 3) :
     ∃ p : Nat, p.Prime ∧ p ∣ n ∧ p % 4 = 3 := by
   by_cases np : n.Prime
@@ -190,8 +213,33 @@ theorem exists_prime_factor_mod_4_eq_3 {n : Nat} (h : n % 4 = 3) :
     apply mod_4_eq_3_or_mod_4_eq_3
     rw [neq, h]
   rcases this with h1 | h1
-  . sorry
-  . sorry
+
+  by_cases mp : m.Prime
+
+  use m
+
+--   how could i chain these applies?
+  rcases ih m mltn h1 mp with ⟨p, pp, pm, pmod⟩
+  use p
+  exact ⟨pp, Nat.dvd_trans pm mdvdn, pmod⟩
+
+  by_cases np : (n/m).Prime
+
+  use n / m
+  exact ⟨np, Nat.div_dvd_of_dvd mdvdn, h1⟩
+
+  apply ih at np
+  rcases np with ⟨p, pp, pn, pmod⟩
+  use p
+  constructor
+  exact pp
+  constructor
+  apply (Nat.dvd_div_iff_mul_dvd mdvdn).mp at pn
+  apply dvd_of_mul_left_dvd pn
+  exact pmod
+  apply Nat.div_lt_self <;> linarith
+  exact h1
+
 example (m n : ℕ) (s : Finset ℕ) (h : m ∈ erase s n) : m ≠ n ∧ m ∈ s := by
   rwa [mem_erase] at h
 
@@ -211,17 +259,33 @@ theorem primes_mod_4_eq_3_infinite : ∀ n, ∃ p > n, Nat.Prime p ∧ p % 4 = 3
     exact ⟨p, pltn, pp, p4⟩
   rcases this with ⟨s, hs⟩
   have h₁ : ((4 * ∏ i ∈ erase s 3, i) + 3) % 4 = 3 := by
-    sorry
+    simp
   rcases exists_prime_factor_mod_4_eq_3 h₁ with ⟨p, pp, pdvd, p4eq⟩
-  have ps : p ∈ s := by
-    sorry
-  have pne3 : p ≠ 3 := by
-    sorry
-  have : p ∣ 4 * ∏ i ∈ erase s 3, i := by
-    sorry
-  have : p ∣ 3 := by
-    sorry
-  have : p = 3 := by
-    sorry
-  contradiction
+  have ps : p ∈ s := (hs p).mp ⟨pp, p4eq⟩
 
+  have pne3 : p ≠ 3 := by
+    intro contra
+    rw [contra] at pdvd
+    simp at pdvd
+    apply Nat.prime_three.dvd_mul.mp at pdvd
+    simp at pdvd
+    apply mem_of_dvd_prod_primes Nat.prime_three at pdvd
+    rw [mem_erase] at pdvd
+    cases pdvd
+    contradiction
+    intro n ns
+    rw [mem_erase] at ns
+    rcases ns with ⟨n1, n2⟩
+    apply (hs n).mpr at n2
+    exact n2.1
+
+  have : p ∣ 4 * ∏ i ∈ erase s 3, i := by
+    apply Nat.dvd_mul_left_of_dvd
+    apply dvd_prod_of_mem
+    rw [mem_erase]
+    exact ⟨pne3, ps⟩
+
+  have : p ∣ 3 := (Nat.dvd_add_iff_right this).mpr pdvd
+
+  have : p = 3 := pp.eq_of_dvd_of_prime Nat.prime_three this
+  contradiction
