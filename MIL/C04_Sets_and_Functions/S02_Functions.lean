@@ -97,10 +97,21 @@ example (h : Injective f) : f '' s ∩ f '' t ⊆ f '' (s ∩ t) := by
   assumption
 
 example : f '' s \ f '' t ⊆ f '' (s \ t) := by
-  sorry
+  rintro y ⟨⟨x, xs, rfl⟩ , ht⟩
+  simp at ht
+  use x
+  constructor
+  constructor
+  use xs
+  intro contra
+  apply ht at contra
+  contradiction
+  trivial
 
 example : f ⁻¹' u \ f ⁻¹' v ⊆ f ⁻¹' (u \ v) := by
-  sorry
+  -- fun x ↦ id
+  rintro _ ⟨hyu, hyv⟩
+  exact ⟨hyu, hyv⟩
 
 example : f '' s ∩ v = f '' (s ∩ f ⁻¹' v) := by
   sorry
