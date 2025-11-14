@@ -91,17 +91,89 @@ example (n : ℕ) : #(triangle n) = (n + 1) * n / 2 := by
   let turn (p : ℕ × ℕ) : ℕ × ℕ := (n - 1 - p.1, n - p.2)
   calc 2 * #(triangle n)
       = #(triangle n) + #(triangle n) := by
-          sorry
+          apply two_mul
     _ = #(triangle n) + #(triangle n |>.image turn) := by
-          sorry
+          rw [card_image_of_injOn]
+          simp [triangle, turn]
+          intro (x1, y1) ⟨⟨x1ltnp1, y1ltnp1⟩, x1lty1⟩ (x2, y2) ⟨⟨x2ltnp1, y2ltnp1⟩, x2lty2⟩ hturn
+          simp at x1ltnp1 y1ltnp1 x1lty1 x2ltnp1 y2ltnp1 x2lty2
+          simp [turn] at hturn
+          rcases hturn with ⟨hx, hy⟩
+          simp
+          omega
+          -- LOL all of this was only needed because omega doesn't like thinking about (x1, y1) = (x2, y2),
+          -- but can perfectly handle x1 = y1 ∧ x2 = y2
+          -- apply Nat.le_of_lt_succ at x1ltnp1
+          -- apply Nat.le_of_lt_succ at y1ltnp1
+          -- apply Nat.le_of_lt_succ at x2ltnp1
+          -- apply Nat.le_of_lt_succ at y2ltnp1
+          -- have yeq : y1 = y2 := by
+          --   apply (Nat.sub_eq_iff_eq_add y1ltnp1).mp at hy
+          --   rw [← Nat.sub_add_comm y2ltnp1] at hy
+          --   symm at hy
+          --   apply (Nat.sub_eq_iff_eq_add (Nat.le_add_right_of_le y2ltnp1)).mp at hy
+          --   exact Nat.add_left_cancel hy
+          -- have x1lenminus1 : x1 ≤ n - 1 := Nat.le_sub_one_of_lt (Nat.lt_of_lt_of_le x1lty1 y1ltnp1)
+          -- have x2lenminus1 : x2 ≤ n - 1 := Nat.le_sub_one_of_lt (Nat.lt_of_lt_of_le x2lty2 y2ltnp1)
+          -- have xeq: x1 = x2 := by
+          --   apply (Nat.sub_eq_iff_eq_add x1lenminus1).mp at hx
+          --   rw [← Nat.sub_add_comm x2lenminus1] at hx
+          --   symm at hx
+          --   apply (Nat.sub_eq_iff_eq_add (Nat.le_add_right_of_le x2lenminus1)).mp at hx
+          --   exact Nat.add_left_cancel hx
+          -- exact Prod.ext xeq yeq
     _ = #(range n ×ˢ range (n + 1)) := by
-          sorry
+      have: Disjoint (triangle n) (triangle n |>.image turn) := by
+        rw [disjoint_iff_ne]
+        intro (x1, y1) h1 (x2, y2) h2
+        simp [triangle] at h1
+        simp [triangle, turn] at h2
+        rcases h2 with ⟨a, b, ha, hb⟩
+        -- you can do this with a rfl somehow
+        intro contra
+        rcases contra
+        omega
+      rw [← card_union_of_disjoint this]
+      -- didn't need this, congr is precisely the tactic you want!
+      apply card_bijective id Function.bijective_id
+
+      intro (x, y); constructor
+      simp [mem_union, triangle, turn]
+      rintro (h | h)
+      omega
+      omega
+
+      intro h
+      simp at h
+      rcases h with ⟨h1, h2⟩
+      simp [mem_union, triangle, turn]
+      rcases lt_or_ge x y with xlty | ylex
+      left
+      omega
+
+      right
+      use n - x - 1, n - y
+      omega
+
     _ = (n + 1) * n := by
-          sorry
+      simp; rw[mul_comm]
 
 def triangle' (n : ℕ) : Finset (ℕ × ℕ) := {p ∈ range n ×ˢ range n | p.1 ≤ p.2}
 
-example (n : ℕ) : #(triangle' n) = #(triangle n) := by sorry
+example (n : ℕ) : #(triangle' n) = #(triangle n) := by
+  let shove (p : ℕ × ℕ) : ℕ × ℕ := (p.1, p.2 + 1)
+  have inj : Function.Injective shove := by
+    intro x y; simp[shove]; intro h1 h2; exact Prod.ext h1 h2
+  rw [← card_image_of_injective _ inj]
+  congr; ext x; constructor
+  simp[triangle, triangle', shove]
+  rintro a b c d e ⟨f, g⟩
+  omega
+  simp[triangle, triangle', shove]
+  rintro a b c
+  use x.1, x.2 - 1
+  constructor; omega
+  apply Prod.ext; simp; simp; omega
 
 section
 open Classical
@@ -129,8 +201,20 @@ example {n : ℕ} (A : Finset ℕ)
     ∃ m ∈ A, ∃ k ∈ A, Nat.Coprime m k := by
   have : ∃ t ∈ range n, 1 < #({u ∈ A | u / 2 = t}) := by
     apply exists_lt_card_fiber_of_mul_lt_card_of_maps_to
-    · sorry
-    · sorry
+
+    intro a ha
+    apply hA' at ha
+    simp at ha
+    simp
+    omega
+
+    simp; omega
   rcases this with ⟨t, ht, ht'⟩
   simp only [one_lt_card, mem_filter] at ht'
-  sorry
+  rcases ht' with ⟨a, ⟨haA, hat⟩, b, ⟨hbA, hbt⟩, anb⟩
+  have : a = b + 1 ∨ b = a + 1 := by omega
+  use a, haA
+  use b, hbA
+  rcases this with rfl|rfl
+  simp
+  simp
